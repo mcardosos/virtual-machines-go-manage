@@ -101,6 +101,7 @@ func createNeededResources() *network.Subnet {
 	_, err := groupClient.CreateOrUpdate(groupName, resourceGroupParameters)
 	onErrorFail(err, "CreateOrUpdate resource group failed")
 
+	errStorage := make(<-chan error)
 	go func() {
 		fmt.Println("\tStarting to create storage account...")
 		accountParameters := storage.AccountCreateParameters{
@@ -110,9 +111,7 @@ func createNeededResources() *network.Subnet {
 			Location: &location,
 			AccountPropertiesCreateParameters: &storage.AccountPropertiesCreateParameters{},
 		}
-		_, errStorage := accountClient.Create(groupName, accountName, accountParameters, nil)
-		onErrorFail(<-errStorage, "Create storage account failed")
-		fmt.Println("... storage account created")
+		_, errStorage = accountClient.Create(groupName, accountName, accountParameters, nil)
 	}()
 
 	fmt.Println("\tStarting to create virtual network...")
@@ -143,6 +142,9 @@ func createNeededResources() *network.Subnet {
 	fmt.Println("\tGet subnet info...")
 	subnet, err = subnetClient.Get(groupName, vNetName, subnetName, "")
 	onErrorFail(err, "Get subnet failed")
+
+	onErrorFail(<-errStorage, "Create storage account failed")
+	fmt.Println("... storage account created")
 
 	return &subnet
 }
@@ -183,7 +185,7 @@ func createPIPandNIC(machine string, subnet *network.Subnet) (*network.PublicIPA
 	onErrorFail(<-errPIP, "CreateOrUpdate '%s' failed", IPname)
 	fmt.Printf("... public IP address '%v' created\n", IPname)
 
-	fmt.Println("\tGet IP address info...")
+	fmt.Printf("\tGet IP address '%s' info...\n", IPname)
 	pip, err := addressClient.Get(groupName, IPname, "")
 	onErrorFail(err, "Get '%s' failed", IPname)
 
@@ -280,7 +282,7 @@ func getVM(vmName string) *compute.VirtualMachine {
 }
 
 func updateVM(vmName string, vm *compute.VirtualMachine) {
-	fmt.Println("Tag VM (via CreateOrUpdate operation)")
+	fmt.Printf("Tag VM '%s' (via CreateOrUpdate operation)\n", vmName)
 	vm.Tags = &(map[string]*string{
 		"who rocks": to.StringPtr("golang"),
 		"where":     to.StringPtr("on azure"),
@@ -290,7 +292,7 @@ func updateVM(vmName string, vm *compute.VirtualMachine) {
 }
 
 func attachDataDisk(vmName string, vm *compute.VirtualMachine) {
-	fmt.Println("Attach data disk (via CreateOrUpdate operation)")
+	fmt.Printf("Attach data disk to '%s' (via CreateOrUpdate operation)\n", vmName)
 	vm.StorageProfile.DataDisks = &[]compute.DataDisk{
 		{
 			Lun:  to.Int32Ptr(0),
@@ -307,14 +309,14 @@ func attachDataDisk(vmName string, vm *compute.VirtualMachine) {
 }
 
 func detachDataDisks(vmName string, vm *compute.VirtualMachine) {
-	fmt.Println("Detach data disks (via CreateOrUpdate operation)")
+	fmt.Printf("Detach data disks from '%s' (via CreateOrUpdate operation)\n", vmName)
 	vm.StorageProfile.DataDisks = &[]compute.DataDisk{}
 	_, errChan := vmClient.CreateOrUpdate(groupName, vmName, *vm, nil)
 	onErrorFail(<-errChan, "CreateOrUpdate '%s' failed", vmName)
 }
 
 func updateOSdiskSize(vmName string, vm *compute.VirtualMachine) {
-	fmt.Println("Update OS disk size (via Deallocate and CreateOrUpdate operations)")
+	fmt.Printf("Update OS disk size on '%s' (via Deallocate and CreateOrUpdate operations)\n", vmName)
 	if vm.StorageProfile.OsDisk.DiskSizeGB == nil {
 		vm.StorageProfile.OsDisk.DiskSizeGB = to.Int32Ptr(0)
 	}
@@ -332,19 +334,19 @@ func updateOSdiskSize(vmName string, vm *compute.VirtualMachine) {
 }
 
 func startVM(vmName string) {
-	fmt.Println("Start VM...")
+	fmt.Printf("Start VM '%s'...\n", vmName)
 	_, errChan := vmClient.Start(groupName, vmName, nil)
 	onErrorFail(<-errChan, "Start '%s' failed", vmName)
 }
 
 func restartVM(vmName string) {
-	fmt.Println("Restart VM...")
+	fmt.Printf("Restart VM '%s'...\n", vmName)
 	_, errChan := vmClient.Restart(groupName, vmName, nil)
 	onErrorFail(<-errChan, "Restart '%s' failed", vmName)
 }
 
 func stopVM(vmName string) {
-	fmt.Println("Stop VM...")
+	fmt.Printf("Stop VM '%s'...\n", vmName)
 	_, errChan := vmClient.PowerOff(groupName, vmName, nil)
 	onErrorFail(<-errChan, "Stop '%s' failed", vmName)
 }
