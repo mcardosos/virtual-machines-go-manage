@@ -2,8 +2,10 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
@@ -414,24 +416,44 @@ func onErrorFail(err error, message string, a ...interface{}) {
 }
 
 func createClients(subscriptionID string, authorizer *autorest.BearerAuthorizer) {
+	sampleUA := fmt.Sprintf("Azure-Samples/virtual-machines-go-manage/%s", getCommit())
+
 	groupClient = resources.NewGroupsClient(subscriptionID)
 	groupClient.Authorizer = authorizer
+	groupClient.Client.AddToUserAgent(sampleUA)
 
 	accountClient = storage.NewAccountsClient(subscriptionID)
 	accountClient.Authorizer = authorizer
+	accountClient.Client.AddToUserAgent(sampleUA)
 
 	vNetClient = network.NewVirtualNetworksClient(subscriptionID)
 	vNetClient.Authorizer = authorizer
+	vNetClient.Client.AddToUserAgent(sampleUA)
 
 	subnetClient = network.NewSubnetsClient(subscriptionID)
 	subnetClient.Authorizer = authorizer
+	subnetClient.Client.AddToUserAgent(sampleUA)
 
 	addressClient = network.NewPublicIPAddressesClient(subscriptionID)
 	addressClient.Authorizer = authorizer
+	addressClient.Client.AddToUserAgent(sampleUA)
 
 	interfacesClient = network.NewInterfacesClient(subscriptionID)
 	interfacesClient.Authorizer = authorizer
+	interfacesClient.Client.AddToUserAgent(sampleUA)
 
 	vmClient = compute.NewVirtualMachinesClient(subscriptionID)
 	vmClient.Authorizer = authorizer
+	vmClient.Client.AddToUserAgent(sampleUA)
+}
+
+func getCommit() string {
+	cmd := exec.Command("git", "rev-parse", "HEAD")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+	if err != nil {
+		return ""
+	}
+	return string(bytes.Trim(out.Bytes(), "\n"))
 }
