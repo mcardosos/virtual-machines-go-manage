@@ -455,5 +455,5 @@ func getCommit() string {
 	if err != nil {
 		return ""
 	}
-	return string(bytes.Trim(out.Bytes(), "\n"))
+	return string(out.Bytes()[:7])
 }
