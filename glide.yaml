@@ -8,7 +8,7 @@ import:
   - arm/resources/resources
   - arm/storage
 - package: github.com/Azure/go-autorest
-  version: v8.1.0
+  version: master
   subpackages:
   - autorest
   - autorest/adal
