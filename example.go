@@ -406,7 +406,7 @@ func onErrorFail(err error, message string, a ...interface{}) {
 }
 
 func createClients(subscriptionID string, authorizer *autorest.BearerAuthorizer) {
-	sampleUA := fmt.Sprintf("Azure-Samples/virtual-machines-go-manage/%s", utils.GetCommit())
+	sampleUA := fmt.Sprintf("sample/0002/%s", utils.GetCommit())
 
 	groupClient = resources.NewGroupsClient(subscriptionID)
 	groupClient.Authorizer = authorizer
