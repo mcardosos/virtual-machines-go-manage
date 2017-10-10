@@ -10,10 +10,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/Azure/azure-sdk-for-go/arm/resources/resources"
 	"github.com/Azure/azure-sdk-for-go/arm/storage"
-	"github.com/Azure/go-autorest/autorest"
-	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/to"
-	"github.com/Azure/go-autorest/autorest/utils"
 )
 
 const (
@@ -24,11 +21,7 @@ const (
 
 // This example requires that the following environment vars are set:
 //
-// AZURE_TENANT_ID: contains your Azure Active Directory tenant ID or domain
-// AZURE_CLIENT_ID: contains your Azure Active Directory Application Client ID
-// AZURE_CLIENT_SECRET: contains your Azure Active Directory Application Secret
-// AZURE_SUBSCRIPTION_ID: contains your Azure Subscription ID
-//
+// AZURE_AUTH_LOCATION: contains the path to the Azure authentication file created by the Azure CLI
 
 var (
 	groupName   = "your-azure-sample-group"
@@ -45,13 +38,8 @@ var (
 )
 
 func init() {
-	authorizer, err := utils.GetAuthorizer(azure.PublicCloud)
-	onErrorFail(err, "GetAuthorizer failed")
-
-	subscriptionID := utils.GetEnvVarOrExit("AZURE_SUBSCRIPTION_ID")
-	createClients(subscriptionID, authorizer)
+	createClients()
 }
-
 func main() {
 	subnet := createNeededResources()
 	defer groupClient.Delete(groupName, nil)
@@ -215,7 +203,7 @@ func setVMparameters(vmName, publisher, offer, sku, nicID string) compute.Virtua
 		Location: &location,
 		VirtualMachineProperties: &compute.VirtualMachineProperties{
 			HardwareProfile: &compute.HardwareProfile{
-				VMSize: compute.StandardDS1,
+				VMSize: compute.VirtualMachineSizeTypesStandardDS1,
 			},
 			StorageProfile: &compute.StorageProfile{
 				ImageReference: &compute.ImageReference{
@@ -229,7 +217,7 @@ func setVMparameters(vmName, publisher, offer, sku, nicID string) compute.Virtua
 					Vhd: &compute.VirtualHardDisk{
 						URI: to.StringPtr(fmt.Sprintf(vhdURItemplate, accountName, vmName)),
 					},
-					CreateOption: compute.FromImage,
+					CreateOption: compute.DiskCreateOptionTypesFromImage,
 				},
 			},
 			OsProfile: &compute.OSProfile{
@@ -292,7 +280,7 @@ func attachDataDisk(vmName string, vm *compute.VirtualMachine) {
 			Vhd: &compute.VirtualHardDisk{
 				URI: to.StringPtr(fmt.Sprintf(vhdURItemplate, accountName, fmt.Sprintf("dataDisks-%v", vmName))),
 			},
-			CreateOption: compute.Empty,
+			CreateOption: compute.DiskCreateOptionTypesEmpty,
 			DiskSizeGB:   to.Int32Ptr(1),
 		},
 	}
@@ -405,34 +393,41 @@ func onErrorFail(err error, message string, a ...interface{}) {
 	}
 }
 
-func createClients(subscriptionID string, authorizer *autorest.BearerAuthorizer) {
-	sampleUA := fmt.Sprintf("sample/0002/%s", utils.GetCommit())
+func createClients() (err error) {
+	groupClient, err = resources.NewGroupsClientWithAuthFile()
+	if err != nil {
+		return
+	}
 
-	groupClient = resources.NewGroupsClient(subscriptionID)
-	groupClient.Authorizer = authorizer
-	groupClient.Client.AddToUserAgent(sampleUA)
+	accountClient, err = storage.NewAccountsClientWithAuthFile()
+	if err != nil {
+		return
+	}
 
-	accountClient = storage.NewAccountsClient(subscriptionID)
-	accountClient.Authorizer = authorizer
-	accountClient.Client.AddToUserAgent(sampleUA)
+	vNetClient, err = network.NewVirtualNetworksClientWithAuthFile()
+	if err != nil {
+		return
+	}
 
-	vNetClient = network.NewVirtualNetworksClient(subscriptionID)
-	vNetClient.Authorizer = authorizer
-	vNetClient.Client.AddToUserAgent(sampleUA)
+	subnetClient, err = network.NewSubnetsClientWithAuthFile()
+	if err != nil {
+		return
+	}
 
-	subnetClient = network.NewSubnetsClient(subscriptionID)
-	subnetClient.Authorizer = authorizer
-	subnetClient.Client.AddToUserAgent(sampleUA)
+	addressClient, err = network.NewPublicIPAddressesClientWithAuthFile()
+	if err != nil {
+		return err
+	}
 
-	addressClient = network.NewPublicIPAddressesClient(subscriptionID)
-	addressClient.Authorizer = authorizer
-	addressClient.Client.AddToUserAgent(sampleUA)
+	interfacesClient, err = network.NewInterfacesClientWithAuthFile()
+	if err != nil {
+		return
+	}
 
-	interfacesClient = network.NewInterfacesClient(subscriptionID)
-	interfacesClient.Authorizer = authorizer
-	interfacesClient.Client.AddToUserAgent(sampleUA)
+	vmClient, err = compute.NewVirtualMachinesClientWithAuthFile()
+	if err != nil {
+		return
+	}
 
-	vmClient = compute.NewVirtualMachinesClient(subscriptionID)
-	vmClient.Authorizer = authorizer
-	vmClient.Client.AddToUserAgent(sampleUA)
+	return
 }

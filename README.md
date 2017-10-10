@@ -43,18 +43,12 @@ If you don't have a Microsoft Azure subscription you can get a FREE trial accoun
     glide install
     ```
 
-1. Create an Azure service principal either through
-    [Azure CLI](https://azure.microsoft.com/documentation/articles/resource-group-authenticate-service-principal-cli/),
-    [PowerShell](https://azure.microsoft.com/documentation/articles/resource-group-authenticate-service-principal/)
-    or [the portal](https://azure.microsoft.com/documentation/articles/resource-group-create-service-principal-portal/).
+1. Create an Azure service principal and authentication file following [this instructions](https://docs.microsoft.com/en-us/python/azure/python-sdk-azure-authenticate?view=azure-python#mgmt-auth-file)
 
-1. Set the following environment variables using the information from the service principle that you created.
+1. Set the `AZURE_AUTH_LOCATION` environment variable with the authentication file path you created on the last step.
 
     ```
-    export AZURE_TENANT_ID={your tenant id}
-    export AZURE_CLIENT_ID={your client id}
-    export AZURE_CLIENT_SECRET={your client secret}
-    export AZURE_SUBSCRIPTION_ID={your subscription id}
+    export AZURE_AUTH_LOCATION={your auth file path}
     ```
 
     > [AZURE.NOTE] On Windows, use `set` instead of `export`.
